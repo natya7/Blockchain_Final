@@ -8,6 +8,9 @@
     "named-parameters-mapping": "warn",
     "no-console": "off",
     "not-rely-on-time": "off",
-    "use-natspec": "off"
+    "use-natspec": "off",
+    "immutable-vars-naming": "off",
+    "gas-custom-errors": "off",
+    "gas-indexed-events": "off"
   }
 }
