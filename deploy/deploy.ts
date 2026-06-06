@@ -2,7 +2,7 @@ import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 const RESERVE_PRICE = 100;
-const BIDDING_TIME = 7 * 24 * 3600;
+const BIDDING_TIME = parseInt(process.env.BIDDING_TIME ?? "") || 7 * 24 * 3600;
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();

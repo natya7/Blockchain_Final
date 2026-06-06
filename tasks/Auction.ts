@@ -31,10 +31,15 @@ task("auction:status", "Prints auction state").setAction(async function (_args: 
   const { ethers, deployments } = hre;
   const deployment = await deployments.get("VickreyAuction");
   const auction = await ethers.getContractAt("VickreyAuction", deployment.address);
+  const phase = await auction.phase();
   console.log(`auction: ${deployment.address}`);
-  console.log(`phase: ${await auction.phase()}`);
+  console.log(`phase: ${phase}`);
   console.log(`deadline: ${await auction.deadline()}`);
   console.log(`bids: ${await auction.bidCount()}`);
+  if (phase === 3n) {
+    console.log(`winner: ${await auction.winner()}`);
+    console.log(`clearing price: ${await auction.clearingPrice()}`);
+  }
 });
 
 task("auction:bid", "Places an encrypted bid")
@@ -66,6 +71,64 @@ task("auction:bid", "Places an encrypted bid")
     const receipt = await tx.wait();
     console.log(`status: ${receipt?.status}`);
   });
+
+task("auction:finalize", "Closes bidding and marks results decryptable").setAction(async function (
+  _args: TaskArguments,
+  hre,
+) {
+  const { ethers, deployments } = hre;
+  const deployment = await deployments.get("VickreyAuction");
+  const [signer] = await ethers.getSigners();
+  const auction = await ethers.getContractAt("VickreyAuction", deployment.address);
+  const tx = await auction.connect(signer).finalize();
+  console.log(`tx: ${tx.hash}`);
+  await tx.wait();
+  console.log("finalized");
+});
+
+task("auction:settle", "Fetches public decryption and settles on-chain").setAction(async function (
+  _args: TaskArguments,
+  hre,
+) {
+  const { ethers, deployments, fhevm } = hre;
+  await fhevm.initializeCLIApi();
+  const deployment = await deployments.get("VickreyAuction");
+  const [signer] = await ethers.getSigners();
+  const auction = await ethers.getContractAt("VickreyAuction", deployment.address);
+  const winnerHandle = await auction.highestBidder();
+  const priceHandle = await auction.secondHighestBid();
+  const result = await fhevm.publicDecrypt([winnerHandle, priceHandle]);
+  const tx = await auction.connect(signer).settle(result.abiEncodedClearValues, result.decryptionProof);
+  console.log(`tx: ${tx.hash}`);
+  await tx.wait();
+  console.log(`winner: ${await auction.winner()}`);
+  console.log(`clearing price: ${await auction.clearingPrice()}`);
+});
+
+task("auction:claim", "Winner claims the nft and pays the clearing price").setAction(async function (
+  _args: TaskArguments,
+  hre,
+) {
+  const { ethers, deployments } = hre;
+  const deployment = await deployments.get("VickreyAuction");
+  const [signer] = await ethers.getSigners();
+  const auction = await ethers.getContractAt("VickreyAuction", deployment.address);
+  const tx = await auction.connect(signer).claim();
+  console.log(`tx: ${tx.hash}`);
+  await tx.wait();
+  console.log("claimed");
+});
+
+task("auction:withdraw", "Loser withdraws escrowed tokens").setAction(async function (_args: TaskArguments, hre) {
+  const { ethers, deployments } = hre;
+  const deployment = await deployments.get("VickreyAuction");
+  const [signer] = await ethers.getSigners();
+  const auction = await ethers.getContractAt("VickreyAuction", deployment.address);
+  const tx = await auction.connect(signer).withdraw();
+  console.log(`tx: ${tx.hash}`);
+  await tx.wait();
+  console.log("withdrawn");
+});
 
 task("auction:myescrow", "Decrypts the caller's escrowed bid").setAction(async function (_args: TaskArguments, hre) {
   const { ethers, deployments, fhevm } = hre;

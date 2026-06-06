@@ -9,7 +9,9 @@ import {IERC7984} from "@openzeppelin/confidential-contracts/interfaces/IERC7984
 contract VickreyAuction is ZamaEthereumConfig {
     enum Phase {
         Created,
-        Open
+        Open,
+        DecryptionPending,
+        Settled
     }
 
     IERC7984 public immutable token;
@@ -24,13 +26,20 @@ contract VickreyAuction is ZamaEthereumConfig {
     uint256 public bidCount;
     mapping(address bidder => bool placed) public hasBid;
 
-    euint64 private highestBid;
-    euint64 private secondHighestBid;
-    eaddress private highestBidder;
+    address public winner;
+    uint64 public clearingPrice;
+    bool public claimed;
+
+    euint64 public highestBid;
+    euint64 public secondHighestBid;
+    eaddress public highestBidder;
     mapping(address bidder => euint64 amount) private escrows;
 
     event AuctionOpened(uint256 deadline);
     event BidPlaced(address indexed bidder);
+    event AuctionSettled(address winner, uint64 clearingPrice);
+    event PrizeClaimed(address winner);
+    event Refunded(address bidder);
 
     constructor(address token_, address nft_, uint256 tokenId_, uint64 reservePrice_, uint256 biddingTime_) {
         token = IERC7984(token_);
@@ -82,6 +91,64 @@ contract VickreyAuction is ZamaEthereumConfig {
         FHE.allowThis(highestBidder);
 
         emit BidPlaced(msg.sender);
+    }
+
+    function finalize() external {
+        require(phase == Phase.Open, "not open");
+        require(block.timestamp >= deadline, "bidding not over");
+        phase = Phase.DecryptionPending;
+        FHE.makePubliclyDecryptable(highestBidder);
+        FHE.makePubliclyDecryptable(secondHighestBid);
+    }
+
+    function settle(bytes calldata cleartexts, bytes calldata decryptionProof) external {
+        require(phase == Phase.DecryptionPending, "not finalized");
+        bytes32[] memory handles = new bytes32[](2);
+        handles[0] = eaddress.unwrap(highestBidder);
+        handles[1] = euint64.unwrap(secondHighestBid);
+        FHE.checkSignatures(handles, cleartexts, decryptionProof);
+        (address decryptedWinner, uint64 decryptedPrice) = abi.decode(cleartexts, (address, uint64));
+        winner = decryptedWinner;
+        clearingPrice = decryptedPrice;
+        phase = Phase.Settled;
+        emit AuctionSettled(decryptedWinner, decryptedPrice);
+    }
+
+    function claim() external {
+        require(phase == Phase.Settled, "not settled");
+        require(msg.sender == winner, "not winner");
+        require(!claimed, "already claimed");
+        claimed = true;
+
+        euint64 price = FHE.asEuint64(clearingPrice);
+        FHE.allowTransient(price, address(token));
+        token.confidentialTransfer(seller, price);
+
+        euint64 refund = FHE.sub(escrows[winner], price);
+        FHE.allowTransient(refund, address(token));
+        token.confidentialTransfer(winner, refund);
+        escrows[winner] = euint64.wrap(0);
+
+        nft.transferFrom(address(this), winner, tokenId);
+        emit PrizeClaimed(winner);
+    }
+
+    function withdraw() external {
+        require(phase == Phase.Settled, "not settled");
+        require(msg.sender != winner, "winner must claim");
+        euint64 amount = escrows[msg.sender];
+        require(FHE.isInitialized(amount), "nothing to withdraw");
+        escrows[msg.sender] = euint64.wrap(0);
+        FHE.allowTransient(amount, address(token));
+        token.confidentialTransfer(msg.sender, amount);
+        emit Refunded(msg.sender);
+    }
+
+    function reclaim() external {
+        require(phase == Phase.Settled, "not settled");
+        require(winner == address(0), "sold");
+        require(msg.sender == seller, "only seller");
+        nft.transferFrom(address(this), seller, tokenId);
     }
 
     function escrowOf(address bidder) external view returns (euint64) {
