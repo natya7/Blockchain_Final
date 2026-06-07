@@ -16,6 +16,7 @@ export default tseslint.config(
       "cache/**",
       "coverage/**",
       "dist/**",
+      "frontend/**",
       "node_modules/**",
       "types/**",
       "*.env",

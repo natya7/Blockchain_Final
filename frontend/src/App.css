@@ -1,0 +1,142 @@
+.page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 26px;
+}
+
+.subtitle {
+  color: #777;
+  margin: 0;
+  flex-grow: 1;
+}
+
+.account {
+  font-family: monospace;
+  font-size: 13px;
+  background: #f0f0f0;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.card {
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+
+.card h2,
+.card h3 {
+  margin: 0 0 8px;
+}
+
+.card label {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.card input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: monospace;
+  font-size: 13px;
+  padding: 6px 8px;
+  margin-top: 4px;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toggle input {
+  display: inline;
+  width: auto;
+  margin: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.row input {
+  width: 120px;
+  margin: 0;
+}
+
+button {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid #bbb;
+  background: #fafafa;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: #eee;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.value {
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.observer {
+  background: #fffbe8;
+}
+
+.observer code {
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  background: #f5f0d8;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+
+.note {
+  color: #777;
+  font-size: 13px;
+}
+
+.warning {
+  background: #ffe5e5;
+  border: 1px solid #e99;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+}
+
+.status {
+  background: #eef4ff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+.results p {
+  margin: 4px 0;
+}
