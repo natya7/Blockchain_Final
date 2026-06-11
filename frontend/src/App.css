@@ -207,20 +207,23 @@
   box-shadow: 0 0 0 3px rgba(36, 75, 59, 0.13);
 }
 
-.toggle {
+.card label.toggle {
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-top: 4px;
+  margin-bottom: 0;
   text-transform: none;
   letter-spacing: 0.01em;
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   font-weight: 500;
   color: var(--text);
   cursor: pointer;
 }
 
-.toggle input {
-  width: auto;
+.card label.toggle input {
+  width: 16px;
+  height: 16px;
   margin: 0;
   accent-color: var(--green);
   cursor: pointer;
@@ -228,10 +231,14 @@
 
 .row {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   flex-wrap: wrap;
   gap: 12px;
   margin-top: 6px;
+}
+
+.row:has(> label) {
+  align-items: flex-end;
 }
 
 .row + .row {
@@ -371,6 +378,28 @@ code {
 .row code {
   flex: 1 1 240px;
   color: var(--muted);
+}
+
+.auction-row + .auction-row {
+  margin-top: 10px;
+}
+
+.auction-row code {
+  flex: 1 1 auto;
+}
+
+.phase-tag {
+  flex: 0 0 auto;
+  font-family: var(--font-sans);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--green);
+  background: var(--brass-soft);
+  border: 1px solid var(--line);
+  padding: 3px 9px;
+  border-radius: 999px;
 }
 
 .observer {

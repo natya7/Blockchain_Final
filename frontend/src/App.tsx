@@ -429,12 +429,14 @@ function App() {
               <div className="card">
                 <h3>auctions on this factory</h3>
                 {auctionList.map((a) => (
-                  <div key={a.address} className="row">
+                  <div key={a.address} className="row auction-row">
                     <button disabled={!!busy} onClick={() => setAuctionAddress(a.address)}>
                       load
                     </button>
-                    <code>{a.address}</code>
-                    <span className="note">{PHASES[a.phase]}</span>
+                    <code>
+                      {a.address.slice(0, 8)}…{a.address.slice(-6)}
+                    </code>
+                    <span className="phase-tag">{PHASES[a.phase]}</span>
                   </div>
                 ))}
               </div>
