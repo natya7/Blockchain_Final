@@ -41,11 +41,18 @@ contract VickreyAuction is ZamaEthereumConfig {
     event PrizeClaimed(address winner);
     event Refunded(address bidder);
 
-    constructor(address token_, address nft_, uint256 tokenId_, uint64 reservePrice_, uint256 biddingTime_) {
+    constructor(
+        address token_,
+        address nft_,
+        uint256 tokenId_,
+        uint64 reservePrice_,
+        uint256 biddingTime_,
+        address seller_
+    ) {
         token = IERC7984(token_);
         nft = IERC721(nft_);
         tokenId = tokenId_;
-        seller = msg.sender;
+        seller = seller_;
         reservePrice = reservePrice_;
         biddingTime = biddingTime_;
 

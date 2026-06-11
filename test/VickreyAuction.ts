@@ -22,7 +22,7 @@ describe("VickreyAuction", function () {
     const auctionFactory = await ethers.getContractFactory("VickreyAuction");
     const auction = await auctionFactory
       .connect(seller)
-      .deploy(tokenAddress, await nft.getAddress(), 0, RESERVE, BIDDING_TIME);
+      .deploy(tokenAddress, await nft.getAddress(), 0, RESERVE, BIDDING_TIME, seller.address);
     const auctionAddress = await auction.getAddress();
 
     return { token, tokenAddress, nft, auction, auctionAddress, seller, alice, bob };

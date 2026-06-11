@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ethers } from "ethers";
 
 import "./App.css";
-import { AUCTION_ABI, DEFAULT_AUCTION, TOKEN_ABI } from "./contracts";
+import { AUCTION_ABI, DEFAULT_AUCTION, DEFAULT_FACTORY, FACTORY_ABI, NFT_ABI, TOKEN_ABI } from "./contracts";
 import { encryptAmount, publicDecryptPair, userDecryptHandle } from "./fhevm";
 
 const SEPOLIA_CHAIN_ID = 11155111n;
@@ -38,6 +38,11 @@ function App() {
   const [myBalance, setMyBalance] = useState<bigint | null>(null);
   const [myEscrow, setMyEscrow] = useState<bigint | null>(null);
   const [now, setNow] = useState(0);
+  const [factoryAddress, setFactoryAddress] = useState(DEFAULT_FACTORY);
+  const [auctionList, setAuctionList] = useState<{ address: string; phase: number }[]>([]);
+  const [mintedNftId, setMintedNftId] = useState<bigint | null>(null);
+  const [createReserve, setCreateReserve] = useState("100");
+  const [createMinutes, setCreateMinutes] = useState("60");
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Math.floor(Date.now() / 1000)), 1000);
@@ -178,6 +183,74 @@ function App() {
       await tx.wait();
     });
 
+  const loadAuctions = useCallback(async () => {
+    if (!signer || !ethers.isAddress(factoryAddress)) {
+      setAuctionList([]);
+      return;
+    }
+    try {
+      const factory = new ethers.Contract(factoryAddress, FACTORY_ABI, signer);
+      const addresses: string[] = await factory.all();
+      const withPhases = await Promise.all(
+        addresses.map(async (address) => {
+          const auction = new ethers.Contract(address, AUCTION_ABI, signer);
+          return { address, phase: Number(await auction.phase()) };
+        }),
+      );
+      setAuctionList(withPhases);
+    } catch {
+      setAuctionList([]);
+    }
+  }, [signer, factoryAddress]);
+
+  useEffect(() => {
+    loadAuctions();
+  }, [loadAuctions]);
+
+  async function getNftAddress() {
+    const auction = new ethers.Contract(auctionAddress, AUCTION_ABI, signer);
+    return auction.nft() as Promise<string>;
+  }
+
+  const mintNft = () =>
+    run("mint nft", async () => {
+      const nftAddress = await getNftAddress();
+      const nft = new ethers.Contract(nftAddress, NFT_ABI, signer);
+      const tx = await nft.mint();
+      const receipt = await tx.wait();
+      const log = receipt.logs.find(
+        (l: ethers.Log) => l.address.toLowerCase() === nftAddress.toLowerCase(),
+      );
+      const parsed = nft.interface.parseLog(log);
+      setMintedNftId(parsed!.args.tokenId);
+    });
+
+  const createAuction = () =>
+    run("create auction", async () => {
+      if (mintedNftId === null) {
+        throw new Error("mint a prize nft first");
+      }
+      const nftAddress = await getNftAddress();
+      const factory = new ethers.Contract(factoryAddress, FACTORY_ABI, signer);
+      const biddingTime = BigInt(createMinutes) * 60n;
+      const createTx = await factory.createAuction(nftAddress, mintedNftId, BigInt(createReserve), biddingTime);
+      const receipt = await createTx.wait();
+      const log = receipt.logs.find(
+        (l: ethers.Log) => l.address.toLowerCase() === factoryAddress.toLowerCase(),
+      );
+      const parsed = factory.interface.parseLog(log);
+      const newAuction = parsed!.args.auction as string;
+
+      const nft = new ethers.Contract(nftAddress, NFT_ABI, signer);
+      await (await nft.approve(newAuction, mintedNftId)).wait();
+      const auction = new ethers.Contract(newAuction, AUCTION_ABI, signer);
+      await (await auction.start()).wait();
+
+      setMintedNftId(null);
+      setAuctionAddress(newAuction);
+      loadAuctions();
+    });
+
   const secondsLeft = status ? status.deadline - now : 0;
   const isWinner = status && account && status.winner.toLowerCase() === account.toLowerCase();
 
@@ -198,11 +271,56 @@ function App() {
               auction address
               <input value={auctionAddress} onChange={(e) => setAuctionAddress(e.target.value.trim())} />
             </label>
+            <label>
+              factory address (optional — to create or browse auctions)
+              <input value={factoryAddress} onChange={(e) => setFactoryAddress(e.target.value.trim())} />
+            </label>
             <label className="toggle">
               <input type="checkbox" checked={observer} onChange={(e) => setObserver(e.target.checked)} />
               observer mode — see the auction as an outsider
             </label>
           </div>
+
+          {!observer && auctionList.length > 0 && (
+            <div className="card">
+              <h3>auctions on this factory</h3>
+              {auctionList.map((a) => (
+                <div key={a.address} className="row">
+                  <button disabled={!!busy} onClick={() => setAuctionAddress(a.address)}>
+                    load
+                  </button>
+                  <code>{a.address}</code>
+                  <span className="note">{PHASES[a.phase]}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!observer && ethers.isAddress(factoryAddress) && status && (
+            <div className="card">
+              <h3>run your own auction</h3>
+              <div className="row">
+                <button disabled={!!busy} onClick={mintNft}>
+                  mint a prize nft
+                </button>
+                {mintedNftId !== null && <span className="note">nft #{mintedNftId.toString()} ready</span>}
+              </div>
+              <div className="row">
+                <label>
+                  reserve
+                  <input value={createReserve} onChange={(e) => setCreateReserve(e.target.value.trim())} />
+                </label>
+                <label>
+                  minutes
+                  <input value={createMinutes} onChange={(e) => setCreateMinutes(e.target.value.trim())} />
+                </label>
+                <button disabled={!!busy || mintedNftId === null} onClick={createAuction}>
+                  create and start
+                </button>
+              </div>
+              <p className="note">creates an auction with you as seller, escrows the nft, opens bidding</p>
+            </div>
+          )}
 
           {status && (
             <div className="card">
