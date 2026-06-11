@@ -281,61 +281,22 @@ function App() {
 
       {signer && (
         <>
-          <div className="card">
-            <label>
-              auction address
-              <input value={auctionAddress} onChange={(e) => setAuctionAddress(e.target.value.trim())} />
-            </label>
-            <label>
-              factory address (optional — to create or browse auctions)
-              <input value={factoryAddress} onChange={(e) => setFactoryAddress(e.target.value.trim())} />
-            </label>
+          <div className="card config-card">
+            <div className="field-pair">
+              <label>
+                auction address
+                <input value={auctionAddress} onChange={(e) => setAuctionAddress(e.target.value.trim())} />
+              </label>
+              <label>
+                factory address (optional)
+                <input value={factoryAddress} onChange={(e) => setFactoryAddress(e.target.value.trim())} />
+              </label>
+            </div>
             <label className="toggle">
               <input type="checkbox" checked={observer} onChange={(e) => setObserver(e.target.checked)} />
               observer mode — see the auction as an outsider
             </label>
           </div>
-
-          {!observer && auctionList.length > 0 && (
-            <div className="card">
-              <h3>auctions on this factory</h3>
-              {auctionList.map((a) => (
-                <div key={a.address} className="row">
-                  <button disabled={!!busy} onClick={() => setAuctionAddress(a.address)}>
-                    load
-                  </button>
-                  <code>{a.address}</code>
-                  <span className="note">{PHASES[a.phase]}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {!observer && ethers.isAddress(factoryAddress) && status && (
-            <div className="card">
-              <h3>run your own auction</h3>
-              <div className="row">
-                <button disabled={!!busy} onClick={mintNft}>
-                  mint a prize nft
-                </button>
-                {mintedNftId !== null && <span className="note">nft #{mintedNftId.toString()} ready</span>}
-              </div>
-              <div className="row">
-                <label>
-                  reserve
-                  <input value={createReserve} onChange={(e) => setCreateReserve(e.target.value.trim())} />
-                </label>
-                <label>
-                  minutes
-                  <input value={createMinutes} onChange={(e) => setCreateMinutes(e.target.value.trim())} />
-                </label>
-                <button className="primary" disabled={!!busy || mintedNftId === null} onClick={createAuction}>
-                  create and start
-                </button>
-              </div>
-              <p className="note">creates an auction with you as seller, escrows the nft, opens bidding</p>
-            </div>
-          )}
 
           {status && (
             <div className="card status-card">
@@ -380,88 +341,131 @@ function App() {
             </div>
           )}
 
-          {status && observer && (
-            <div className="card observer">
-              <h3>what an observer sees</h3>
-              <p>
-                highest bid: <code>{status.highestBidHandle}</code>
-              </p>
-              <p>
-                second highest: <code>{status.secondHighestBidHandle}</code>
-              </p>
-              <p>
-                leading bidder: <code>{status.highestBidderHandle}</code>
-              </p>
-              <p className="note">
-                these are ciphertext handles — the chain stores no readable amounts. an observer learns only who
-                transacted and when.
-              </p>
-            </div>
-          )}
-
-          {status && !observer && (
-            <>
-              <div className="card">
-                <h3>my tokens</h3>
-                <div className="row">
-                  <button disabled={!!busy} onClick={mint}>
-                    mint 1000
-                  </button>
-                  <button disabled={!!busy} onClick={decryptBalance}>
-                    decrypt my balance
-                  </button>
-                  {myBalance !== null && <span className="value">{myBalance.toString()}</span>}
-                </div>
+          <div className="grid">
+            {status && observer && (
+              <div className="card observer span-all">
+                <h3>what an observer sees</h3>
+                <p>
+                  highest bid: <code>{status.highestBidHandle}</code>
+                </p>
+                <p>
+                  second highest: <code>{status.secondHighestBidHandle}</code>
+                </p>
+                <p>
+                  leading bidder: <code>{status.highestBidderHandle}</code>
+                </p>
+                <p className="note">
+                  these are ciphertext handles — the chain stores no readable amounts. an observer learns only who
+                  transacted and when.
+                </p>
               </div>
+            )}
 
-              <div className="card">
-                <h3>my bid</h3>
-                {status.phase === 1 && !status.hasBid && secondsLeft > 0 && (
+            {status && !observer && (
+              <>
+                <div className="card">
+                  <h3>my tokens</h3>
                   <div className="row">
-                    <input
-                      placeholder="amount"
-                      value={bidAmount}
-                      onChange={(e) => setBidAmount(e.target.value.trim())}
-                    />
-                    <button className="primary" disabled={!!busy || !bidAmount} onClick={placeBid}>
-                      place encrypted bid
+                    <button disabled={!!busy} onClick={mint}>
+                      mint 1000
+                    </button>
+                    <button disabled={!!busy} onClick={decryptBalance}>
+                      decrypt my balance
+                    </button>
+                    {myBalance !== null && <span className="value">{myBalance.toString()}</span>}
+                  </div>
+                </div>
+
+                <div className="card">
+                  <h3>my bid</h3>
+                  {status.phase === 1 && !status.hasBid && secondsLeft > 0 && (
+                    <div className="row">
+                      <input
+                        placeholder="amount"
+                        value={bidAmount}
+                        onChange={(e) => setBidAmount(e.target.value.trim())}
+                      />
+                      <button className="primary" disabled={!!busy || !bidAmount} onClick={placeBid}>
+                        place encrypted bid
+                      </button>
+                    </div>
+                  )}
+                  {status.hasBid && (
+                    <div className="row">
+                      <button disabled={!!busy} onClick={decryptEscrow}>
+                        decrypt my escrow
+                      </button>
+                      {myEscrow !== null && <span className="value">{myEscrow.toString()}</span>}
+                    </div>
+                  )}
+                  {status.phase === 3 && isWinner && !status.claimed && (
+                    <button className="primary" disabled={!!busy} onClick={claim}>
+                      claim nft and refund
+                    </button>
+                  )}
+                  {status.phase === 3 && status.hasBid && !isWinner && (
+                    <button disabled={!!busy} onClick={withdraw}>
+                      withdraw my escrow
+                    </button>
+                  )}
+                </div>
+
+                <div className="card">
+                  <h3>lifecycle</h3>
+                  <div className="row">
+                    <button disabled={!!busy || status.phase !== 1 || secondsLeft > 0} onClick={finalize}>
+                      finalize
+                    </button>
+                    <button disabled={!!busy || status.phase !== 2} onClick={settle}>
+                      settle
                     </button>
                   </div>
-                )}
-                {status.hasBid && (
-                  <div className="row">
-                    <button disabled={!!busy} onClick={decryptEscrow}>
-                      decrypt my escrow
-                    </button>
-                    {myEscrow !== null && <span className="value">{myEscrow.toString()}</span>}
-                  </div>
-                )}
-                {status.phase === 3 && isWinner && !status.claimed && (
-                  <button className="primary" disabled={!!busy} onClick={claim}>
-                    claim nft and refund
-                  </button>
-                )}
-                {status.phase === 3 && status.hasBid && !isWinner && (
-                  <button disabled={!!busy} onClick={withdraw}>
-                    withdraw my escrow
-                  </button>
-                )}
-              </div>
+                  <p className="note">anyone can run these — settlement reveals only the winner and the price</p>
+                </div>
+              </>
+            )}
 
+            {!observer && auctionList.length > 0 && (
               <div className="card">
-                <h3>lifecycle</h3>
+                <h3>auctions on this factory</h3>
+                {auctionList.map((a) => (
+                  <div key={a.address} className="row">
+                    <button disabled={!!busy} onClick={() => setAuctionAddress(a.address)}>
+                      load
+                    </button>
+                    <code>{a.address}</code>
+                    <span className="note">{PHASES[a.phase]}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!observer && ethers.isAddress(factoryAddress) && status && (
+              <div className="card">
+                <h3>run your own auction</h3>
                 <div className="row">
-                  <button disabled={!!busy || status.phase !== 1 || secondsLeft > 0} onClick={finalize}>
-                    finalize
+                  <button disabled={!!busy} onClick={mintNft}>
+                    mint a prize nft
                   </button>
-                  <button disabled={!!busy || status.phase !== 2} onClick={settle}>
-                    settle
+                  {mintedNftId !== null && <span className="note">nft #{mintedNftId.toString()} ready</span>}
+                </div>
+                <div className="row">
+                  <label>
+                    reserve
+                    <input value={createReserve} onChange={(e) => setCreateReserve(e.target.value.trim())} />
+                  </label>
+                  <label>
+                    minutes
+                    <input value={createMinutes} onChange={(e) => setCreateMinutes(e.target.value.trim())} />
+                  </label>
+                  <button className="primary" disabled={!!busy || mintedNftId === null} onClick={createAuction}>
+                    create and start
                   </button>
                 </div>
-                <p className="note">anyone can run these — settlement reveals only the winner and the price</p>
+                <p className="note">creates an auction with you as seller, escrows the nft, opens bidding</p>
               </div>
-            </>
-          )}
+            )}
+          </div>
 
           {busy && <div className="status">working: {busy}…</div>}
           {message && <div className="status">{message}</div>}
