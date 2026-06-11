@@ -256,10 +256,25 @@ function App() {
 
   return (
     <div className="page">
-      <header>
-        <h1>Sealed-Bid Vickrey Auction</h1>
-        <p className="subtitle">encrypted bids on Zama fhEVM — Sepolia</p>
-        {signer ? <span className="account">{account}</span> : <button onClick={connect}>Connect wallet</button>}
+      <header className="masthead">
+        <div className="mast-brand">
+          <span className="seal" aria-hidden="true">
+            V
+          </span>
+          <div>
+            <h1>Sealed-Bid Vickrey Auction</h1>
+            <p className="subtitle">encrypted bids on Zama fhEVM · Sepolia</p>
+          </div>
+        </div>
+        {signer ? (
+          <span className="account">
+            {account.slice(0, 6)}…{account.slice(-4)}
+          </span>
+        ) : (
+          <button className="primary" onClick={connect}>
+            Connect wallet
+          </button>
+        )}
       </header>
 
       {wrongChain && <div className="warning">switch MetaMask to Sepolia and reload</div>}
@@ -314,7 +329,7 @@ function App() {
                   minutes
                   <input value={createMinutes} onChange={(e) => setCreateMinutes(e.target.value.trim())} />
                 </label>
-                <button disabled={!!busy || mintedNftId === null} onClick={createAuction}>
+                <button className="primary" disabled={!!busy || mintedNftId === null} onClick={createAuction}>
                   create and start
                 </button>
               </div>
@@ -323,13 +338,31 @@ function App() {
           )}
 
           {status && (
-            <div className="card">
+            <div className="card status-card">
+              <span className="eyebrow">Auction status</span>
               <h2>{PHASES[status.phase]}</h2>
-              <p>
-                bids: {status.bidCount} · reserve: {status.reservePrice.toString()}
-                {status.phase === 1 &&
-                  now > 0 &&
-                  (secondsLeft > 0 ? ` · bidding ends in ${secondsLeft}s` : " · bidding over, can finalize")}
+              <p className="stat-line">
+                <span>
+                  <b>{status.bidCount}</b> bids
+                </span>
+                <span className="dot">·</span>
+                <span>
+                  reserve <b>{status.reservePrice.toString()}</b>
+                </span>
+                {status.phase === 1 && now > 0 && (
+                  <>
+                    <span className="dot">·</span>
+                    <span className="countdown">
+                      {secondsLeft > 0 ? (
+                        <>
+                          ends in <b>{secondsLeft}s</b>
+                        </>
+                      ) : (
+                        "bidding over"
+                      )}
+                    </span>
+                  </>
+                )}
               </p>
               {status.phase === 3 && (
                 <div className="results">
@@ -390,7 +423,7 @@ function App() {
                       value={bidAmount}
                       onChange={(e) => setBidAmount(e.target.value.trim())}
                     />
-                    <button disabled={!!busy || !bidAmount} onClick={placeBid}>
+                    <button className="primary" disabled={!!busy || !bidAmount} onClick={placeBid}>
                       place encrypted bid
                     </button>
                   </div>
@@ -404,7 +437,7 @@ function App() {
                   </div>
                 )}
                 {status.phase === 3 && isWinner && !status.claimed && (
-                  <button disabled={!!busy} onClick={claim}>
+                  <button className="primary" disabled={!!busy} onClick={claim}>
                     claim nft and refund
                   </button>
                 )}

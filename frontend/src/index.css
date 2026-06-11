@@ -1,6 +1,37 @@
+:root {
+  color-scheme: light;
+
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --font-sans: "Avenir Next", Avenir, "Segoe UI", "Helvetica Neue", Helvetica, sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", "SF Mono", Menlo, Consolas, monospace;
+
+  --paper: #f0ece1;
+  --surface: #fbf8f1;
+  --ink: #201c16;
+  --text: #4f483d;
+  --muted: #978d79;
+  --line: #e1d9c7;
+  --green: #244b3b;
+  --green-deep: #1a3a2c;
+  --felt: #1d3e30;
+  --brass: #9a7a37;
+  --brass-soft: #f1e9d4;
+  --danger: #7a2d2a;
+  --danger-bg: #f4e4dc;
+}
+
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
-  font-family: system-ui, sans-serif;
-  color: #222;
-  background: #fff;
+  font-family: var(--font-sans);
+  color: var(--text);
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(1100px 520px at 50% -8%, rgba(255, 253, 246, 0.85), transparent 62%),
+    repeating-linear-gradient(0deg, rgba(32, 28, 22, 0.013) 0 1px, transparent 1px 3px);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
